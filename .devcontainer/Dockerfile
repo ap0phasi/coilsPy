@@ -1,3 +1,5 @@
+# Reference: https://github.com/dbpprt/ml-in-devcontainers/tree/main/.devcontainer
+
 # Build: sudo docker build -t <project_name> .
 # Run: sudo docker run -v $(pwd):/workspace/project --gpus all -it --rm <project_name>
 
