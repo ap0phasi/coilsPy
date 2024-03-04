@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# install dev requirements
+#pip install --no-cache-dir -r ./.devcontainer/requirements.txt
+
+# clear poetry cache
+poetry cache clear --all .
+
 # install docker to interact with the host if you plan to use remote docker inside the devcontainer
 # for example to train a model on the host but in a container, too
 # curl -fsSL https://get.docker.com -o get-docker.sh

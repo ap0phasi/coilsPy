@@ -40,7 +40,12 @@ RUN /opt/conda/bin/conda config --set ssl_verify False \
     && pip install --upgrade pip --trusted-host pypi.org --trusted-host files.pythonhosted.org \
     && ln -s /opt/conda/bin/pip /usr/local/bin/pip3
 
-# Install requirements
+# Install dev requirements
+COPY devrequirements.txt ./
+RUN pip install --no-cache-dir -r devrequirements.txt \
+    && rm devrequirements.txt
+
+# Install package requirements
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt \
     && rm requirements.txt

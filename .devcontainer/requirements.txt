@@ -1,20 +1,3 @@
-# these requirements are only required for development inside vscode
-pre-commit      # hooks for applying linters on commit
-black           # code formatting
-isort           # import sorting
-flake8          # code analysis
-pylint          # code analysis
-bandit          # security analysis
-
-# auxiliary requirements
-read-version
-wheel
-setuptools
-
-# for development
-ipykernel
-
-# for coils packages
-matplotlib
-numpy
-torch
+torch==2.2.1
+matplotlib==3.8.3
+numpy==1.26.4
