@@ -1,3 +1,3 @@
-from coilspy.generate_kernel import generate_kernel
-from coilspy.generate_complex_sum import generate_complex_sum
-from coilspy.coilclass import ComplexCoil
+from coilspy.generator.generate_kernel import generate_kernel
+from coilspy.generator.generate_complex_sum import generate_complex_sum
+from coilspy.generator.coilclass import ComplexCoil

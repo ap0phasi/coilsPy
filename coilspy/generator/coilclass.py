@@ -18,14 +18,14 @@ class ComplexCoil:
                  trans_sigma_re_lo_lim,
                  trans_sigma_re_hi_lim,
                  trans_sigma_im,
-                 trans_mag_re,
-                 trans_mag_im,
+                 trans_magnitude_re,
+                 trans_magnitude_im,
                  trans_restrictions,
                  inter_sigma_re_lo_lim,
                  inter_sigma_re_hi_lim,
                  inter_sigma_im,
-                 inter_mag_re,
-                 inter_mag_im,
+                 inter_magnitude_re,
+                 inter_magnitude_im,
                  inter_restrictions,
                  ) -> None:
         
@@ -48,8 +48,8 @@ class ComplexCoil:
             sigma_re_lo_lim = trans_sigma_re_lo_lim,
             sigma_re_hi_lim = trans_sigma_re_hi_lim,
             sigma_im = trans_sigma_im,
-            mag_re = trans_mag_re,
-            mag_im = trans_mag_im,
+            mag_re = trans_magnitude_re,
+            mag_im = trans_magnitude_im,
             restrict_dict = trans_restrictions
         )
         
@@ -59,8 +59,8 @@ class ComplexCoil:
             sigma_re_lo_lim = inter_sigma_re_lo_lim,
             sigma_re_hi_lim = inter_sigma_re_hi_lim,
             sigma_im = inter_sigma_im,
-            mag_re = inter_mag_re,
-            mag_im = inter_mag_im,
+            mag_re = inter_magnitude_re,
+            mag_im = inter_magnitude_im,
             restrict_dict = inter_restrictions
         )
         
