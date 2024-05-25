@@ -8,17 +8,17 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-matplotlib = "^3.8.3"
 numpy = "^1.26.4"
 einops = "^0.7.0"
 torch = {version = "^2.3.0+cu121", source = "pytorch"}
 torchvision = {version = "^0.18.0+cu121", source = "pytorch"}
+pandas = "^2.2.2"
 
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "^1.0.0"
 plotly = "^5.20.0"
-pandas = "^2.2.2"
+matplotlib = "^3.9.0"
 
 
 
