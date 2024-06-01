@@ -19,22 +19,28 @@ class CoilNormalizer():
 
         return max_change_df
     
-    def normalize(self, df):
+    def normalize(self, df, fit_change = True):
         # Calculate the change for each feature
         df_diff = df.diff()
 
         # Drop first row
         df_diff = df_diff.iloc[1:,:]
         
-        # Calculate the max absolute change for each feature
-        max_change_df = self.max_absolute_change(df_diff)
+        # If we don't fit the max absolute change, the expectation is
+        #  we are using a previously fit one. 
+        if fit_change:
+            # Calculate the max absolute change for each feature
+            self.max_change_df = self.max_absolute_change(df_diff)
+        else:
+            if self.max_change_df is None:
+                raise ValueError('No max absolute change previously fit')
 
         normalized_features = []
         conserved_subgroups = {}
         count = 0
         index = 0
         for column in df_diff.columns:
-            max_change_val = max_change_df.loc[column, 'Max Absolute Change']
+            max_change_val = self.max_change_df.loc[column, 'Max Absolute Change']
             normalized_feature = (df_diff[column] + max_change_val) / (2 * max_change_val)
             
             normalized_counter = 1 - normalized_feature
@@ -48,12 +54,10 @@ class CoilNormalizer():
             
         # Create dataframe
         normalized_df = pd.DataFrame(normalized_features).T
-        print(normalized_df)
                 
         # Normalize the dataframe again by row such that each row sums to 1
         normalized_df = normalized_df.div(normalized_df.sum(axis=1), axis=0)
         
-        self.max_change_df = max_change_df
         self.conserved_subgroups = conserved_subgroups
         return normalized_df
     
