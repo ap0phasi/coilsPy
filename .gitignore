@@ -1,2 +1,3 @@
 
 dev/saved_tensors/*
+*.pyc
