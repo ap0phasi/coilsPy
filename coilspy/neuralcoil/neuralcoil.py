@@ -11,6 +11,16 @@ class LearnableTemperatureSoftmax(nn.Module):
     def forward(self, x):
         logits = x / self.temperature
         return F.softmax(logits, dim=-1)
+    
+class TemperatureSoftmax(nn.Module):
+    def __init__(self, num_classes, temperature=1.0):
+        super(TemperatureSoftmax, self).__init__()
+        self.num_classes = num_classes
+        self.temperature = temperature
+
+    def forward(self, x):
+        logits = x / self.temperature
+        return F.softmax(logits, dim=-1)
 
 class NeuralCoilLayer(nn.Module):
     def __init__(self, n_features, n_batch, device = "cpu"):
@@ -21,7 +31,9 @@ class NeuralCoilLayer(nn.Module):
         self.interaction_tensors = nn.Parameter(torch.randn(n_features, n_features, n_features, n_features + 1))
         self.topk_num = 1
         self.weightsoft = LearnableTemperatureSoftmax(n_features + 1, initial_temperature= 1.0)
+        #self.weightsoft = TemperatureSoftmax(n_features + 1, temperature= 1.0)
         self.statesoft = LearnableTemperatureSoftmax(n_features, initial_temperature= 0.1)
+        #self.statesoft = TemperatureSoftmax(n_features, temperature= 1 / n_features)
         
         starting_tensor = torch.softmax(torch.zeros(n_batch, n_features, n_features), dim = 1)
         if device == "cuda":
