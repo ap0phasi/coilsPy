@@ -2,6 +2,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+class LearnableTemperatureSoftmax(nn.Module):
+    def __init__(self, num_classes, initial_temperature=1.0):
+        super(LearnableTemperatureSoftmax, self).__init__()
+        self.num_classes = num_classes
+        self.temperature = nn.Parameter(torch.tensor(initial_temperature))
+
+    def forward(self, x):
+        logits = x / self.temperature
+        return F.softmax(logits, dim=-1)
+
 class NeuralCoilLayer(nn.Module):
     def __init__(self, n_features, n_batch, device = "cpu"):
         super(NeuralCoilLayer, self).__init__()
@@ -10,6 +20,8 @@ class NeuralCoilLayer(nn.Module):
         self.act = nn.SiLU()
         self.interaction_tensors = nn.Parameter(torch.randn(n_features, n_features, n_features, n_features + 1))
         self.topk_num = 1
+        self.weightsoft = LearnableTemperatureSoftmax(n_features + 1, initial_temperature= 1.0)
+        self.statesoft = LearnableTemperatureSoftmax(n_features, initial_temperature= 0.1)
         
         starting_tensor = torch.softmax(torch.zeros(n_batch, n_features, n_features), dim = 1)
         if device == "cuda":
@@ -25,7 +37,7 @@ class NeuralCoilLayer(nn.Module):
         # Compute scores for each normalized subgroup
         scores = self.act(self.attention_weights(norm_subgroups.permute(0,2,1))).sum(-1) # [batch_size, num_groups]
         
-        weights = torch.softmax(scores, dim = -1) # [batch_size, num_groups]
+        weights = self.weightsoft(scores) # [batch_size, num_groups]
         
         selected_interaction_tensors = self.interaction_tensors # [states, states, states, states + 1]
         selected_norm_subgroups = norm_subgroups
@@ -50,7 +62,7 @@ class NeuralCoilLayer(nn.Module):
         # Squeezing the result to get rid of the extra dimension
         new_state_tensor = new_state_tensor_bmm.squeeze(2) # [batches, states]
         
-        softmax_tensor = torch.softmax(new_state_tensor * n_features, dim = 1)
+        softmax_tensor = self.statesoft(new_state_tensor)
         
         return softmax_tensor, selected_transition_tensor
 
