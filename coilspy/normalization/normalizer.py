@@ -7,19 +7,19 @@ class CoilNormalizer():
         self.max_change_df = None
         self.conserved_subgroups = None
     
-    def max_absolute_change(self, df_diff):
+    def max_absolute_change(self, df_diff, change_factor = 1.0):
         # Calculate the absolute change for each feature
         abs_change = df_diff.abs()
 
         # Find the maximum absolute change for each feature
-        max_changes = abs_change.max()
+        max_changes = abs_change.max() * change_factor
 
         # Convert the series to a DataFrame
         max_change_df = max_changes.to_frame(name='Max Absolute Change')
 
         return max_change_df
     
-    def normalize(self, df, fit_change = True):
+    def normalize(self, df, fit_change = True, change_factor = 1.0):
         # Calculate the change for each feature
         df_diff = df.diff()
 
@@ -30,7 +30,7 @@ class CoilNormalizer():
         #  we are using a previously fit one. 
         if fit_change:
             # Calculate the max absolute change for each feature
-            self.max_change_df = self.max_absolute_change(df_diff)
+            self.max_change_df = self.max_absolute_change(df_diff, change_factor = change_factor)
         else:
             if self.max_change_df is None:
                 raise ValueError('No max absolute change previously fit')
