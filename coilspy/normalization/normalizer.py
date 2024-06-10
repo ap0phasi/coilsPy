@@ -7,19 +7,19 @@ class CoilNormalizer():
         self.max_change_df = None
         self.conserved_subgroups = None
     
-    def max_absolute_change(self, df_diff):
+    def max_absolute_change(self, df_diff, change_factor = 1.0):
         # Calculate the absolute change for each feature
         abs_change = df_diff.abs()
 
         # Find the maximum absolute change for each feature
-        max_changes = abs_change.max()
+        max_changes = abs_change.max() * change_factor
 
         # Convert the series to a DataFrame
         max_change_df = max_changes.to_frame(name='Max Absolute Change')
 
         return max_change_df
     
-    def normalize(self, df, fit_change = True):
+    def normalize(self, df, fit_change = True, change_factor = 1.0):
         # Calculate the change for each feature
         df_diff = df.diff()
 
@@ -30,7 +30,7 @@ class CoilNormalizer():
         #  we are using a previously fit one. 
         if fit_change:
             # Calculate the max absolute change for each feature
-            self.max_change_df = self.max_absolute_change(df_diff)
+            self.max_change_df = self.max_absolute_change(df_diff, change_factor = change_factor)
         else:
             if self.max_change_df is None:
                 raise ValueError('No max absolute change previously fit')
@@ -80,11 +80,28 @@ class CoilNormalizer():
             reconstructed_array.append(new_value)
         return pd.DataFrame(reconstructed_array, index = [initial_value.name] + list(denormalized_df.index))
     
-def segment_time_series(series, length):
-    # Assuming series is a numpy array of shape [total_length, n_features]
+def segment_time_series(series, length, overlap=None):
+    """
+    Segment a time series into overlapping or non-overlapping segments.
+
+    Parameters:
+    - series (np.ndarray): Input time series array of shape [total_length, n_features].
+    - length (int): Length of each segment.
+    - overlap (bool): Whether to create overlapping segments. Default is False.
+
+    Returns:
+    - np.ndarray: Array of segments.
+    """
     total_length, n_features = series.shape
     segments = []
-    for start in range(0, total_length - length, length):
+    
+    if overlap is None:
+        step = length  # Non-overlapping segments with step size equal to segment length
+    else:
+        step = overlap  # If overlap, use value
+
+    for start in range(0, total_length - length + 1, step):
         segment = series[start:start + length]
         segments.append(segment)
+    
     return np.stack(segments)

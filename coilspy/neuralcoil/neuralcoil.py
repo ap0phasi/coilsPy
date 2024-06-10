@@ -2,69 +2,51 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class LearnableTemperatureSoftmax(nn.Module):
-    def __init__(self, num_classes, initial_temperature=1.0):
-        super(LearnableTemperatureSoftmax, self).__init__()
-        self.num_classes = num_classes
-        self.temperature = nn.Parameter(torch.tensor(initial_temperature))
-
-    def forward(self, x):
-        logits = x / self.temperature
-        return F.softmax(logits, dim=-1)
-
 class NeuralCoilLayer(nn.Module):
-    def __init__(self, n_features, n_batch, device = "cpu"):
+    def __init__(self, n_features, n_batch, sel_temp = 1e-3, norm_temp = 7, device = "cpu"):
         super(NeuralCoilLayer, self).__init__()
-        self.n_features = n_features
-        self.attention_weights = nn.Linear(n_features, 1, bias=False)
-        self.act = nn.SiLU()
-        self.interaction_tensors = nn.Parameter(torch.randn(n_features, n_features, n_features, n_features + 1))
-        self.topk_num = 1
-        self.weightsoft = LearnableTemperatureSoftmax(n_features + 1, initial_temperature= 1.0)
-        self.statesoft = LearnableTemperatureSoftmax(n_features, initial_temperature= 0.1)
+        self.interaction_tensors = nn.Parameter(torch.rand(n_features, n_features, n_features, n_features + 1))
+        self.sel_temp = sel_temp
+        self.norm_temp = norm_temp
         
         starting_tensor = torch.softmax(torch.zeros(n_batch, n_features, n_features), dim = 1)
         if device == "cuda":
             self.starting_transition_tensor = starting_tensor.to("cuda")
         else:
             self.starting_transition_tensor = starting_tensor
+            
+    def select_transition_tensor(self, state_tensor,transition_tensor, interaction_tensor, sel_temperature):
+        # Combine state and transition tensors into a norm_subgroups tensor
+        norm_subgroups = torch.cat((state_tensor.unsqueeze(-1), transition_tensor), dim=2)
         
-    def step_coil(self, state_tensor, previous_transition_tensor):
-        # Establish normalized subgroups by combining state tensor with transition tensors
-        norm_subgroups = torch.cat((state_tensor.unsqueeze(-1), previous_transition_tensor), dim=2) # [batch_size, states, num_groups]
-        batch_size, n_features, num_groups = norm_subgroups.shape
+        # Get candidate transition tensors:
+        candidate_transition_tensors = (torch.mul(interaction_tensor, norm_subgroups.unsqueeze(1).unsqueeze(1))).sum(-2) # [batches, states, states, states + 1]
         
-        # Compute scores for each normalized subgroup
-        scores = self.act(self.attention_weights(norm_subgroups.permute(0,2,1))).sum(-1) # [batch_size, num_groups]
+        # Determine the largest and smallest states
+        high_magnitude = torch.softmax(((state_tensor) / sel_temperature), dim = 1)
+        low_magnitude = torch.softmax(1 - ((state_tensor) / sel_temperature), dim = 1)
         
-        weights = self.weightsoft(scores) # [batch_size, num_groups]
+        # Find which transition corresponds to moving from the highest state to the lowest state, and focus on that:
+        transition_focus_slices = (torch.mul(torch.mul(candidate_transition_tensors, high_magnitude.unsqueeze(2).unsqueeze(1)), low_magnitude.unsqueeze(2).unsqueeze(2)))
         
-        selected_interaction_tensors = self.interaction_tensors # [states, states, states, states + 1]
-        selected_norm_subgroups = norm_subgroups
+        # Determine the selection weights by which slice is the highest in the focus transition
+        selection_weights = torch.softmax(transition_focus_slices.sum(2).sum(1) / sel_temperature, dim = 1)
+        
+        # Perform weighted averaging
+        selected_transition_tensor = torch.mul(candidate_transition_tensors, selection_weights.unsqueeze(1).unsqueeze(1)).sum(-1)
+        
+        return selected_transition_tensor
+        
+    def step_coil(self, state_tensor, transition_tensor):
+        
+        selected_transition_tensor = self.select_transition_tensor(state_tensor, transition_tensor, self.interaction_tensors, sel_temperature= self.sel_temp)
+        
+        selected_transition_tensor = torch.softmax(selected_transition_tensor * self.norm_temp, dim =1)
+        
+        new_state_tensor = torch.mul(selected_transition_tensor, state_tensor.unsqueeze(1)).sum(dim = -1)
+        
 
-        selected_transition_tensors = (torch.mul(selected_interaction_tensors, selected_norm_subgroups.unsqueeze(1).unsqueeze(1))).sum(-2) # [batches, states, states, states + 1]
-        
-        # We need a single transition tensor so we will average this as well
-        selected_transition_tensor = (torch.mul(selected_transition_tensors, weights.unsqueeze(-2).unsqueeze(-2))).sum(-1) # [batches, states, states]
-
-        # Generate state tensor from the transition tensor
-        # Unsqueezing state_tensor to make it [batch_size, states, 1] for matrix multiplication
-        # If we only want to use the state tensor
-        selected_norm_tensor = norm_subgroups[:,:,0] # [batches, states]
-        # If we want to use a mix of state and transition tensors
-        #selected_norm_tensor = (torch.mul(norm_subgroups, weights.unsqueeze(1))).sum(-1) # [batches, states]
-        
-        selected_norm_tensor_unsqueezed = selected_norm_tensor.unsqueeze(2) # [batches, states, 1]
-
-        # Performing batch matrix multiplication
-        new_state_tensor_bmm = torch.bmm(selected_transition_tensor, selected_norm_tensor_unsqueezed) # [batches, states, 1]
-
-        # Squeezing the result to get rid of the extra dimension
-        new_state_tensor = new_state_tensor_bmm.squeeze(2) # [batches, states]
-        
-        softmax_tensor = self.statesoft(new_state_tensor)
-        
-        return softmax_tensor, selected_transition_tensor
+        return new_state_tensor, selected_transition_tensor
 
 
     def forward(self, x):
