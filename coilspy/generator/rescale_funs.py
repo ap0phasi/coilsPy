@@ -12,9 +12,7 @@ def renormalize_to_unit_circle(array: Tensor) -> Tensor:
     torch.Tensor: A renormalized 1D tensor of complex numbers.
     """
     current_sum = torch.sum(array)
-    if current_sum == 0:
-        return array  # Avoid division by zero if the current sum is 0
-
+    
     # Calculate the magnitude of the current sum
     magnitude = torch.abs(current_sum)
 

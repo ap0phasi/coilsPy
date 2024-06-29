@@ -42,6 +42,9 @@ class ComplexCoil:
                                      magnitude_re = state_magnitude_re, 
                                      magnitude_im = state_magnitude_im,
                                      restrictions = state_restrictions)
+        # Add batch dimension
+        self.state_tensor = self.state_tensor.unsqueeze(0)
+        
         self.transition_tensor = initialize_transition_tensor(
             theta = self.thetas_dict['transition'],
             num_elements = num_elements,
@@ -64,13 +67,16 @@ class ComplexCoil:
             restrict_dict = inter_restrictions
         )
         
-    def step_coil(self, renormalize = True, use_abs = False):
-        self.transition_tensor, selected_subgroup = select_transition_tensor(self.state_tensor, self.transition_tensor, self.interaction_tensor, use_abs = use_abs)
-        
-        self.state_tensor = torch.matmul(self.transition_tensor,self.state_tensor)
+    def step_coil(self, renormalize = True, sel_temperature = 1e-5):
+        self.transition_tensor = select_transition_tensor(self.state_tensor, 
+                                                          self.transition_tensor, 
+                                                          self.interaction_tensor, 
+                                                          sel_temperature = sel_temperature)
+        self.state_tensor =  torch.mul(self.transition_tensor,self.state_tensor.unsqueeze(1)).sum(dim = -1)
         
         if renormalize:
             self.state_tensor = renormalize_to_unit_circle(self.state_tensor)
+            self.transition_tensor = renormalize_to_unit_circle(self.transition_tensor)
             
     def get_prob(self):
         return torch.real(self.state_tensor * torch.conj(self.state_tensor.sum()))

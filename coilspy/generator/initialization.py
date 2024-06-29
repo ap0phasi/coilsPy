@@ -35,6 +35,9 @@ def initialize_transition_tensor(num_elements,
     # Combine columns into a matrix
     transition_tensor = torch.cat(columns, dim=1)
     
+    # Add batch dimension
+    transition_tensor = transition_tensor.unsqueeze(0)
+
     return transition_tensor
 
 
